@@ -18,4 +18,25 @@
         align-items: center; 
         text-align: right; 
     }
+    body {
+        font-size:20px;
+        /* padding:50px; */
+        margin:150px;
+    }
 </style>
+
+<% if (!username) { %>
+    <form action="/login" method="POST" style="padding: 50px">
+        <label for="username">Enter your user name:</label>
+        <input id="username" type="text" name="username" style="width: 300px">
+        <input type="submit" value="Submit">
+    </form>
+<% } else { %>
+    <form action="/logout" method="POST" style="padding: 50px">
+        <label for="username" ><%=username%>:</label>
+        <!-- send back the user name in case /logout handler needs it -->
+        <input id="username" value="<%=username%>" name="username" type="hidden">
+        <input type="submit" value="Log Out">
+    </form>
+<%}%>
+    
