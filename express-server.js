@@ -50,13 +50,21 @@ app.post("/urls", (req, res) => {
   res.redirect('http://localhost:8080/urls/' + shortURL);
 });
 
-// handle request for new URL mapping
+// handle request to delete existing URL mapping
 app.post("/urls/:id/delete", (req, res) => {
   if (!urlDatabase[req.params.id])
     res.redirect('http://localhost:8080/urls');
   else {
     delete urlDatabase[req.params.id];
   }
+  res.redirect('http://localhost:8080/urls');
+});
+
+// handle request to alter existing URL mapping
+app.post("/urls/:id/update", (req, res) => {
+  if (req.body.longURL.substring(0,4) !== "http")
+    req.body.longURL = "http://" + req.body.longURL;
+  urlDatabase[req.params.id] = req.body.longURL;
   res.redirect('http://localhost:8080/urls');
 });
 

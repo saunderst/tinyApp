@@ -3,11 +3,13 @@
 <head>
     <% include partials/_header %>
 </head>
-<body>
-  <h3><%=shortURL%></h3>
+<body style="font-size:20px; padding:50px; margin:150px;">
   <p>
-    <%=urls[shortURL]%> 
+    <h3>ShortURL: <%=shortURL%></h3>
+    <form action="/urls/<%=shortURL%>/update" method="POST" id="formUpdate">
+      <input id="longURL" type="text" name="longURL" placeholder=<%=urls[shortURL]%> style="width: 300px">
+      <input type="submit" value="Update">
+    </form>
   </p>
-  <br>
 </body>
 </html>

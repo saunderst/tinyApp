@@ -2,26 +2,6 @@
 <html lang="en">
 <head>
     <% include partials/_header %>
-    <style>
-      .longURL {
-        color:blue;
-      }
-      .delButton {
-        -webkit-border-radius: 11;
-        -moz-border-radius: 11;
-        border-radius: 11px;
-        font-family: Arial;
-        color: #000;
-        font-size: 15px;
-        background: #fafafa;
-        padding: 10px;
-        border: solid #dde3e6 1px;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center; 
-        text-align: right; 
-      }
-    </style>
 </head>
 <body>
   <table>
@@ -30,6 +10,7 @@
         <td><%=url[0]%></td>
         <td>&rarr;</td>
         <td class="longURL"><%=url[1]%></td>
+        <td style="padding: 15px"><a href="/urls/<%=url[0]%>/">Edit</a></td>
         <form method="POST" action="/urls/<%=url[0]%>/delete" id="form<%=url[0]%>"></form>
         <td><button class="delButton" form="form<%=url[0]%>">Delete&emsp;<img src="/public/trash.png" height="30" width="30"></button></td>
       </tr>
