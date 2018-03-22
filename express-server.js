@@ -3,7 +3,18 @@ const express = require("express");
 const app = express();
 const cookieParser = require('cookie-parser')
 const PORT = process.env.PORT || 8080; // default port 8080
-
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "dishwasher-funk"
+  }
+};
 
 // for first pass at tinyURL generation
 function generateRandomString() {
@@ -33,13 +44,13 @@ app.listen(PORT, () => {
 });
 
 app.get("/", (req, res) => {
-  res.end("Hello!");    // just being friendly
+  res.end("Hello!");    // just being friendly, maybe a bit loud
 });
 
 // display list of existing URL mappings
 app.get("/urls", (req, res) => {
   let templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user.id"]],
     urls: urlDatabase
   };
   res.render("urls_index", templateVars);
@@ -78,7 +89,7 @@ app.post("/urls/:id/update", (req, res) => {
 // be sure this goes before the generic /urls/:id
 app.get("/urls/new", (req, res) => {
   let templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user.id"]]
   };
   
   res.render("urls_new", templateVars);
@@ -87,7 +98,7 @@ app.get("/urls/new", (req, res) => {
 // show the requested URL mapping
 app.get("/urls/:id", (req, res) => {
   let templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user.id"]],
     shortURL: req.params.id,
     urls: urlDatabase
   };
@@ -114,3 +125,35 @@ app.post("/logout", (req, res) => {
   res.redirect('http://localhost:8080/urls');
 });
 
+// display the registration form
+app.get("/register", (req, res) => {
+  res.render("register");
+});
+
+// handle submission from  the registration form
+app.post("/register", (req, res) => {
+  debugger
+  if (req.body.email === "" ||req.body.password === "") {
+    res.status(400).send("We're gonna need values for email and password.");
+  } else {
+    for (let user in users) {
+      if (users[user].email === req.body.email) {
+        res.status(400).send("Don't use somebody else's email.  Please.");
+        return;
+      }
+    }
+    let newUser = generateRandomString();  
+    users[newUser] = {
+      id: newUser,
+      email: req.body.email,
+      password: req.body.password
+    }; 
+    res.cookie('user_id', users[newUser].id);
+    res.redirect('http://localhost:8080/urls');
+    }
+});
+
+// display the login page
+app.get("/login", (req, res) => {
+  res.render("login");
+});
