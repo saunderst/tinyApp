@@ -25,3 +25,8 @@
     }
 </style>
 
+<%if (!user) {%>
+    <a href="/register">Register</a>
+    <label> / </label>
+    <a href="/login">Login</a>
+<%}%>
