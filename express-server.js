@@ -65,17 +65,17 @@ app.post('/urls', (req, res) => {
   if (req.body.longURL.substring(0,4) !== 'http')
     req.body.longURL = 'http://' + req.body.longURL;
   urlDatabase[shortURL] = req.body.longURL;
-  res.redirect('http://localhost:8080/urls/' + shortURL);
+  res.redirect('/urls/' + shortURL);
 });
 
 // handle request to delete existing URL mapping
 app.post('/urls/:id/delete', (req, res) => {
   if (!urlDatabase[req.params.id])
-    res.redirect('http://localhost:8080/urls');
+    res.redirect('/urls');
   else {
     delete urlDatabase[req.params.id];
   }
-  res.redirect('http://localhost:8080/urls');
+  res.redirect('/urls');
 });
 
 // handle request to alter existing URL mapping
@@ -83,22 +83,27 @@ app.post('/urls/:id/update', (req, res) => {
   if (req.body.longURL.substring(0,4) !== 'http')
     req.body.longURL = 'http://' + req.body.longURL;
   urlDatabase[req.params.id] = req.body.longURL;
-  res.redirect('http://localhost:8080/urls');
+  res.redirect('/urls');
 });
 
 // be sure this goes before the generic /urls/:id
 app.get('/urls/new', (req, res) => {
-  let templateVars = {
-    user: users[req.cookies['user.id']]
-  };
-  
-  res.render('urls_new', templateVars);
+  debugger
+  if (users[req.cookies.user_id]) {
+    let templateVars = {
+      user: users[req.cookies.user_id]
+    };
+    res.render('urls_new', templateVars);
+  } else {
+    // don't let them do it if they're not logged in
+    res.redirect('/login');
+  }
 });
 
 // show the requested URL mapping
 app.get('/urls/:id', (req, res) => {
   let templateVars = {
-    user: users[req.cookies['user.id']],
+    user: users[req.cookies.user_id],
     shortURL: req.params.id,
     urls: urlDatabase
   };
@@ -108,7 +113,7 @@ app.get('/urls/:id', (req, res) => {
 app.get('/u/:shortURL', (req, res) => {
   let longURL = urlDatabase[req.params.shortURL];
   if (!longURL)
-    res.redirect('http://localhost:8080/urls');
+    res.redirect('/urls');
   else
     res.redirect(longURL);
 });
@@ -121,19 +126,19 @@ app.post('/login', (req, res) => {
     if (users[user].email === req.body.email && users[user].password === req.body.password) {
       userFound = true;
       res.cookie('user_id', users[user].id);
-      res.redirect('http://localhost:8080/urls');
+      res.redirect('/urls');
       break;
     }
   }
   if (!userFound) {
-    res.status(403).send('I don\'t even know who you are.');
+    res.redirect('/register');
   }
 });
 
 // logout request: delete cookie
 app.get('/logout', (req, res) => {
   res.clearCookie('user_id');
-  res.redirect('http://localhost:8080/urls');
+  res.redirect('/urls');
 });
 
 // display the registration form
@@ -159,7 +164,7 @@ app.post('/register', (req, res) => {
       password: req.body.password
     }; 
     res.cookie('user_id', users[newUser].id);
-    res.redirect('http://localhost:8080/urls');
+    res.redirect('/urls');
     }
 });
 
