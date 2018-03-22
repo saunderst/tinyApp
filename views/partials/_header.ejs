@@ -28,5 +28,7 @@
 <%if (!user) {%>
     <a href="/register">Register</a>
     <label> / </label>
-    <a href="/login">Login</a>
+    <a href="/login">Log in</a>
+<%} else {%>
+    <a href="/logout">Log out "<%=user.email%>"</a>
 <%}%>
