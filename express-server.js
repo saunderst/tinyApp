@@ -30,6 +30,19 @@ var urlDatabase = {
   }
 };
 
+function urlsForUser(filterUser) {
+  if (!filterUser) {
+    return undefined;
+  } else {
+    let filteredURLs = {};
+    for (let url in urlDatabase) {
+      if (urlDatabase[url].userID === filterUser.id) {
+        filteredURLs[url] = urlDatabase[url];
+      }
+    }
+    return filteredURLs;
+  }
+}
 // for first pass at tinyURL generation
 function generateRandomString() {
   let rstring = '';
@@ -57,9 +70,12 @@ app.get('/', (req, res) => {
 
 // display list of existing URL mappings
 app.get('/urls', (req, res) => {
+  let currentUser = users[req.cookies['user_id']];
+  debugger
+  let currentURLs = urlsForUser(currentUser);
   let templateVars = {
-    user: users[req.cookies['user_id']],
-    urls: urlDatabase
+    user: currentUser,
+    urls: currentURLs
   };
   res.render('urls_index', templateVars);
 });

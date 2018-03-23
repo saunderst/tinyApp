@@ -4,19 +4,23 @@
     <% include partials/_header %>
 </head>
 <body>
-  <table>
-    <%for (let url in urls) { %>
-      <tr>
-        <td><%=url%></td>
-        <td>&rarr;</td>
-        <td class="longURL"><%=urls[url].longURL%></td>
-        <td style="padding: 15px"><a href="/urls/<%=url%>/">Edit</a></td>
-        <form method="POST" action="/urls/<%=url%>/delete" id="form<%=url%>"></form>
-        <td><button class="delButton" form="form<%=url%>">Delete&emsp;<img src="/public/trash.png" height="30" width="30"></button></td>
-      </tr>
-    <%};%>
-  </table>
-  <br>
-  <a href="/urls/new">Shorten a new URL</a>
+  <%if (!user) {%>
+    <label>To inspect, update and/or edit short URLs, please register or log in.</label>
+  <%} else {%>
+    <table>
+      <%for (let url in urls) { %>
+        <tr>
+          <td><%=url%></td>
+          <td>&rarr;</td>
+          <td class="longURL"><%=urls[url].longURL%></td>
+          <td style="padding: 15px"><a href="/urls/<%=url%>/">Edit</a></td>
+          <form method="POST" action="/urls/<%=url%>/delete" id="form<%=url%>"></form>
+          <td><button class="delButton" form="form<%=url%>">Delete&emsp;<img src="/public/trash.png" height="30" width="30"></button></td>
+        </tr>
+      <%};%>
+    </table>
+    <br>
+    <a href="/urls/new">Shorten a new URL</a>
+  <%}%>
 </body>
 </html>
