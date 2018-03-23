@@ -1,20 +1,23 @@
 const bodyParser = require('body-parser');
 const express = require('express');
 const app = express();
-const cookieParser = require('cookie-parser')
+const cookieSession = require('cookie-session')
+const bcrypt = require('bcrypt');
 const PORT = process.env.PORT || 8080; // default port 8080
 
-// some predefined users
+// some predefined users with passwords visible here just for testing!
 const users = {
   'userRandomID': {
     id: 'userRandomID',
     email: 'user@example.com',
-    password: 'purple-monkey-dinosaur'
+    // password: bcrypt.hashSync("purple-monkey-dinosaur", 10)
+    password: '$2a$10$rUB.To/pAE4zGWrYCWXrK.UNqGrLmrN8u5psJ6LY/4voiuGu9oSwy'
   },
   'user2RandomID': {
     id: 'user2RandomID',
     email: 'user2@example.com',
-    password: 'dishwasher-funk'
+    // password: bcrypt.hashSync("dishwasher-funk", 10)
+    password: '$2a$10$Nszy9xtgluBRYBDrqXV.B.d.vwanMcj5jhVWFwmzmcoc9/tKsn13y'
   }
 };
 
@@ -57,8 +60,14 @@ app.set('view engine', 'ejs');
 
 // enable us to use local resources for display
 app.use('/public', express.static('public'));
-// for eyeing people's cookies
-app.use(cookieParser())
+
+app.use(cookieSession({
+  name: 'session',
+  secret: "Is this really a secret? r7waWquFqMlHIkyGcUBNWrO79cldGsLggM93fKmpaDg=",
+
+  // Cookie Options
+  maxAge: 1 * 60 * 60 * 1000 // 1 hour
+}));
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
@@ -140,18 +149,17 @@ app.get('/urls/:id', (req, res) => {
 });
 
 app.get('/u/:shortURL', (req, res) => {
-  let longURL = urlDatabase[req.params.shortURL].longURL;
-  if (!longURL)
+  if (!urlDatabase[req.params.shortURL])
     res.redirect('/urls');
   else
-    res.redirect(longURL);
+    res.redirect(urlDatabase[req.params.shortURL].longURL);
 });
 
 // login request: set cookie
 app.post('/login', (req, res) => {
   let userFound = false;
   for (let user in users) {
-    if (users[user].email === req.body.email && users[user].password === req.body.password) {
+    if (users[user].email === req.body.email && bcrypt.compareSync(req.body.password, users[user].password)) {
       userFound = true;
       res.cookie('user_id', users[user].id);
       res.redirect('/urls');
@@ -189,7 +197,7 @@ app.post('/register', (req, res) => {
     users[newUser] = {
       id: newUser,
       email: req.body.email,
-      password: req.body.password
+      password: bcrypt.hashSync(req.body.password, 10)
     };
     res.cookie('user_id', users[newUser].id);
     res.redirect('/urls');
