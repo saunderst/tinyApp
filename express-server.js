@@ -3,6 +3,8 @@ const express = require('express');
 const app = express();
 const cookieParser = require('cookie-parser')
 const PORT = process.env.PORT || 8080; // default port 8080
+
+// some predefined users
 const users = { 
   'userRandomID': {
     id: 'userRandomID', 
@@ -13,6 +15,18 @@ const users = {
     id: 'user2RandomID', 
     email: 'user2@example.com', 
     password: 'dishwasher-funk'
+  }
+};
+
+// a couple of predefined URL mappings
+var urlDatabase = {
+  'b2xVn2': {
+    userID: 'userRandomID',
+    longURL: 'http://www.lighthouselabs.ca'
+  },
+  '9sm5xK': {
+    userID: 'user2RandomID',
+    longURL: 'http://www.google.com'
   }
 };
 
@@ -32,12 +46,6 @@ app.set('view engine', 'ejs');
 app.use('/public', express.static('public'));
 // for eyeing people's cookies
 app.use(cookieParser())
-
-// a couple of predefined URL mappings
-var urlDatabase = {
-  'b2xVn2': 'http://www.lighthouselabs.ca',
-  '9sm5xK': 'http://www.google.com'
-};
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
@@ -62,33 +70,36 @@ app.use(bodyParser.urlencoded({extended: true}));
 // handle request for new URL mapping
 app.post('/urls', (req, res) => {
   let shortURL = generateRandomString();
-  if (req.body.longURL.substring(0,4) !== 'http')
+  if (req.body.longURL.substring(0,4) !== 'http') {
     req.body.longURL = 'http://' + req.body.longURL;
-  urlDatabase[shortURL] = req.body.longURL;
-  res.redirect('/urls/' + shortURL);
+  }
+  urlDatabase[shortURL] = {
+    userID: req.cookies.user_id,
+    longURL: req.body.longURL
+  }
+  res.redirect('/urls');
 });
 
 // handle request to delete existing URL mapping
-app.post('/urls/:id/delete', (req, res) => {
-  if (!urlDatabase[req.params.id])
+app.post('/urls/:shortURL/delete', (req, res) => {
+  if (!urlDatabase[req.params.shortURL])
     res.redirect('/urls');
   else {
-    delete urlDatabase[req.params.id];
+    delete urlDatabase[req.params.shortURL];
   }
   res.redirect('/urls');
 });
 
 // handle request to alter existing URL mapping
-app.post('/urls/:id/update', (req, res) => {
+app.post('/urls/:shortURL/update', (req, res) => {
   if (req.body.longURL.substring(0,4) !== 'http')
     req.body.longURL = 'http://' + req.body.longURL;
-  urlDatabase[req.params.id] = req.body.longURL;
+  urlDatabase[req.params.shortURL].longURL = req.body.longURL;
   res.redirect('/urls');
 });
 
 // be sure this goes before the generic /urls/:id
 app.get('/urls/new', (req, res) => {
-  debugger
   if (users[req.cookies.user_id]) {
     let templateVars = {
       user: users[req.cookies.user_id]
@@ -111,7 +122,7 @@ app.get('/urls/:id', (req, res) => {
 });
 
 app.get('/u/:shortURL', (req, res) => {
-  let longURL = urlDatabase[req.params.shortURL];
+  let longURL = urlDatabase[req.params.shortURL].longURL;
   if (!longURL)
     res.redirect('/urls');
   else
@@ -121,7 +132,6 @@ app.get('/u/:shortURL', (req, res) => {
 // login request: set cookie
 app.post('/login', (req, res) => {
   let userFound = false;
-  debugger
   for (let user in users) {
     if (users[user].email === req.body.email && users[user].password === req.body.password) {
       userFound = true;

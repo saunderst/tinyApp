@@ -5,16 +5,16 @@
 </head>
 <body>
   <table>
-    <% Object.entries(urls).forEach(url => { %>
+    <%for (let url in urls) { %>
       <tr>
-        <td><%=url[0]%></td>
+        <td><%=url%></td>
         <td>&rarr;</td>
-        <td class="longURL"><%=url[1]%></td>
-        <td style="padding: 15px"><a href="/urls/<%=url[0]%>/">Edit</a></td>
-        <form method="POST" action="/urls/<%=url[0]%>/delete" id="form<%=url[0]%>"></form>
-        <td><button class="delButton" form="form<%=url[0]%>">Delete&emsp;<img src="/public/trash.png" height="30" width="30"></button></td>
+        <td class="longURL"><%=urls[url].longURL%></td>
+        <td style="padding: 15px"><a href="/urls/<%=url%>/">Edit</a></td>
+        <form method="POST" action="/urls/<%=url%>/delete" id="form<%=url%>"></form>
+        <td><button class="delButton" form="form<%=url%>">Delete&emsp;<img src="/public/trash.png" height="30" width="30"></button></td>
       </tr>
-    <%});%>
+    <%};%>
   </table>
   <br>
   <a href="/urls/new">Shorten a new URL</a>
