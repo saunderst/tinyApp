@@ -5,18 +5,16 @@ const cookieSession = require('cookie-session')
 const bcrypt = require('bcrypt');
 const PORT = process.env.PORT || 8080; // default port 8080
 
-// some predefined users with passwords visible here just for testing!
+// some predefined users for testing
 const users = {
   'userRandomID': {
     id: 'userRandomID',
     email: 'user@example.com',
-    // password: bcrypt.hashSync("purple-monkey-dinosaur", 10)
     password: '$2a$10$rUB.To/pAE4zGWrYCWXrK.UNqGrLmrN8u5psJ6LY/4voiuGu9oSwy'
   },
   'user2RandomID': {
     id: 'user2RandomID',
     email: 'user2@example.com',
-    // password: bcrypt.hashSync("dishwasher-funk", 10)
     password: '$2a$10$Nszy9xtgluBRYBDrqXV.B.d.vwanMcj5jhVWFwmzmcoc9/tKsn13y'
   }
 };
@@ -33,6 +31,7 @@ var urlDatabase = {
   }
 };
 
+// filter url database by user ID
 function urlsForUser(filterUser) {
   if (!filterUser) {
     return undefined;
@@ -46,7 +45,7 @@ function urlsForUser(filterUser) {
     return filteredURLs;
   }
 }
-// for first pass at tinyURL generation
+// for basic method of  tinyURL and user ID generation
 function generateRandomString() {
   let rstring = '';
   let chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -61,10 +60,13 @@ app.set('view engine', 'ejs');
 // enable us to use local resources for display
 app.use('/public', express.static('public'));
 
+// need this for handling form submission
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// handle cookies
 app.use(cookieSession({
   name: 'session',
   secret: "Is this really a secret? r7waWquFqMlHIkyGcUBNWrO79cldGsLggM93fKmpaDg=",
-
   // Cookie Options
   maxAge: 1 * 60 * 60 * 1000 // 1 hour
 }));
@@ -73,14 +75,19 @@ app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
+// home page
 app.get('/', (req, res) => {
-  res.end('Hello!');    // just being friendly, maybe a bit loud
+  if (req.session.user_id) {
+    res.redirect('/urls');
+  } else {
+    // don't show them anything if they're not logged in
+    res.redirect('/login');
+  }
 });
 
 // display list of existing URL mappings
 app.get('/urls', (req, res) => {
-  let currentUser = users[req.cookies['user_id']];
-  debugger
+  let currentUser = users[req.session.user_id];
   let currentURLs = urlsForUser(currentUser);
   let templateVars = {
     user: currentUser,
@@ -89,47 +96,57 @@ app.get('/urls', (req, res) => {
   res.render('urls_index', templateVars);
 });
 
-// need this for handling form submission
-app.use(bodyParser.urlencoded({ extended: true }));
-
 // handle request for new URL mapping
 app.post('/urls', (req, res) => {
-  let shortURL = generateRandomString();
-  if (req.body.longURL.substring(0, 4) !== 'http') {
-    req.body.longURL = 'http://' + req.body.longURL;
+  if (req.session.user_id) {   // logged in?
+    let shortURL = generateRandomString();
+    if (req.body.longURL.substring(0, 4) !== 'http') {
+      req.body.longURL = 'http://' + req.body.longURL;
+    }
+    urlDatabase[shortURL] = {
+      userID: req.session.user_id,
+      longURL: req.body.longURL
+    }
+    res.redirect('/urls/' + shortURL);
+  } else {
+    res.redirect('/urls');
   }
-  urlDatabase[shortURL] = {
-    userID: req.cookies.user_id,
-    longURL: req.body.longURL
-  }
-  res.redirect('/urls');
 });
 
 // handle request to delete existing URL mapping
 app.post('/urls/:shortURL/delete', (req, res) => {
-  if (urlDatabase[req.params.shortURL] &&
-    (urlDatabase[req.params.shortURL].userID === req.cookies.user_id)) {
-    delete urlDatabase[req.params.shortURL];
+  if (req.session.user_id) {   // logged in?
+    // doesn't own this URL?
+    if (urlDatabase[req.params.shortURL].userID != req.session.user_id) {
+      res.status(400).send(req.params.shortURL + ' is owned by another user.');
+    } else {
+      delete urlDatabase[req.params.shortURL];
+    }
   }
   res.redirect('/urls');
 });
 
 // handle request to alter existing URL mapping
 app.post('/urls/:shortURL/update', (req, res) => {
-  if (urlDatabase[req.params.shortURL].userID === req.cookies.user_id) {
-    if (req.body.longURL.substring(0, 4) !== 'http') {
-      req.body.longURL = 'http://' + req.body.longURL;
+  if (req.session.user_id) {   // logged in?
+    // doesn't own this URL?
+    if (urlDatabase[req.params.shortURL].userID != req.session.user_id) {
+      res.status(400).send(req.params.shortURL + ' is owned by another user.');
+    } else {
+      if (req.body.longURL.substring(0, 4) !== 'http') {
+        req.body.longURL = 'http://' + req.body.longURL;
+      }
+      urlDatabase[req.params.shortURL].longURL = req.body.longURL;
     }
-    urlDatabase[req.params.shortURL].longURL = req.body.longURL;
+    res.redirect('/urls');
   }
-  res.redirect('/urls');
 });
 
 // be sure this goes before the generic /urls/:id
 app.get('/urls/new', (req, res) => {
-  if (users[req.cookies.user_id]) {
+  if (req.session.user_id) {   // logged in?
     let templateVars = {
-      user: users[req.cookies.user_id]
+      user: users[req.session.user_id]
     };
     res.render('urls_new', templateVars);
   } else {
@@ -139,18 +156,29 @@ app.get('/urls/new', (req, res) => {
 });
 
 // show the requested URL mapping
-app.get('/urls/:id', (req, res) => {
-  let templateVars = {
-    user: users[req.cookies.user_id],
-    shortURL: req.params.id,
-    urls: urlDatabase
-  };
-  res.render('urls_show', templateVars);
+app.get('/urls/:shortURL', (req, res) => {
+  if (!urlDatabase[req.params.shortURL]) {
+    res.status(404).send(req.params.shortURL + ' is not a valid URL abbreviation.');
+  }
+  else if (!req.session.user_id) {   // not logged in?
+    res.redirect('/urls');
+  }
+  else if (urlDatabase[req.params.shortURL].userID != req.session.user_id) {
+    res.status(400).send(req.params.shortURL + ' is owned by another user.');
+  }
+  else {
+    let templateVars = {
+      user: users[req.session.user_id],
+      shortURL: req.params.shortURL,
+      urls: urlDatabase
+    };
+    res.render('urls_show', templateVars);
+  }
 });
 
 app.get('/u/:shortURL', (req, res) => {
   if (!urlDatabase[req.params.shortURL])
-    res.redirect('/urls');
+    res.status(404).send(req.params.shortURL + ' is not a valid URL abbreviation.');
   else
     res.redirect(urlDatabase[req.params.shortURL].longURL);
 });
@@ -161,35 +189,39 @@ app.post('/login', (req, res) => {
   for (let user in users) {
     if (users[user].email === req.body.email && bcrypt.compareSync(req.body.password, users[user].password)) {
       userFound = true;
-      res.cookie('user_id', users[user].id);
+      req.session.user_id = users[user].id;
       res.redirect('/urls');
       break;
     }
   }
   if (!userFound) {
-    res.redirect('/register');
+    res.status(400).send('Sorry, we don\'t know you.');
   }
 });
 
 // logout request: delete cookie
 app.get('/logout', (req, res) => {
-  res.clearCookie('user_id');
+  req.session = null;
   res.redirect('/urls');
 });
 
 // display the registration form
 app.get('/register', (req, res) => {
-  res.render('register');
+  if (req.session.user_id) {   // logged in?
+    res.redirect('/urls');
+  } else {
+    res.render('register');
+  }
 });
 
 // handle submission from  the registration form
 app.post('/register', (req, res) => {
   if (req.body.email === '' || req.body.password === '') {
-    res.status(400).send('We\'re gonna need values for email and password.');
+    res.status(400).send('Missing email and/or password.');
   } else {
     for (let user in users) {
       if (users[user].email === req.body.email) {
-        res.status(400).send('Don\'t use somebody else\'s email.  Please.');
+        res.status(400).send('Email already registered.');
         return;
       }
     }
@@ -199,12 +231,16 @@ app.post('/register', (req, res) => {
       email: req.body.email,
       password: bcrypt.hashSync(req.body.password, 10)
     };
-    res.cookie('user_id', users[newUser].id);
+    req.session.user_id = users[newUser].id;
     res.redirect('/urls');
   }
 });
 
 // display the login page
 app.get('/login', (req, res) => {
-  res.render('login');
+  if (req.session.user_id) {   // logged in?
+    res.redirect('/urls');
+  } else {
+    res.render('login');
+  }
 });
