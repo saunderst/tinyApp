@@ -5,15 +5,15 @@ const cookieParser = require('cookie-parser')
 const PORT = process.env.PORT || 8080; // default port 8080
 
 // some predefined users
-const users = { 
+const users = {
   'userRandomID': {
-    id: 'userRandomID', 
-    email: 'user@example.com', 
+    id: 'userRandomID',
+    email: 'user@example.com',
     password: 'purple-monkey-dinosaur'
   },
- 'user2RandomID': {
-    id: 'user2RandomID', 
-    email: 'user2@example.com', 
+  'user2RandomID': {
+    id: 'user2RandomID',
+    email: 'user2@example.com',
     password: 'dishwasher-funk'
   }
 };
@@ -34,9 +34,9 @@ var urlDatabase = {
 function generateRandomString() {
   let rstring = '';
   let chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-  
+
   for (let i = 0; i < 6; i++)
-  rstring += chars[Math.floor(Math.random() * chars.length)];
+    rstring += chars[Math.floor(Math.random() * chars.length)];
   return rstring;
 }
 
@@ -65,12 +65,12 @@ app.get('/urls', (req, res) => {
 });
 
 // need this for handling form submission
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // handle request for new URL mapping
 app.post('/urls', (req, res) => {
   let shortURL = generateRandomString();
-  if (req.body.longURL.substring(0,4) !== 'http') {
+  if (req.body.longURL.substring(0, 4) !== 'http') {
     req.body.longURL = 'http://' + req.body.longURL;
   }
   urlDatabase[shortURL] = {
@@ -82,9 +82,8 @@ app.post('/urls', (req, res) => {
 
 // handle request to delete existing URL mapping
 app.post('/urls/:shortURL/delete', (req, res) => {
-  if (!urlDatabase[req.params.shortURL])
-    res.redirect('/urls');
-  else {
+  if (urlDatabase[req.params.shortURL] &&
+    (urlDatabase[req.params.shortURL].userID === req.cookies.user_id)) {
     delete urlDatabase[req.params.shortURL];
   }
   res.redirect('/urls');
@@ -92,9 +91,12 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 
 // handle request to alter existing URL mapping
 app.post('/urls/:shortURL/update', (req, res) => {
-  if (req.body.longURL.substring(0,4) !== 'http')
-    req.body.longURL = 'http://' + req.body.longURL;
-  urlDatabase[req.params.shortURL].longURL = req.body.longURL;
+  if (urlDatabase[req.params.shortURL].userID === req.cookies.user_id) {
+    if (req.body.longURL.substring(0, 4) !== 'http') {
+      req.body.longURL = 'http://' + req.body.longURL;
+    }
+    urlDatabase[req.params.shortURL].longURL = req.body.longURL;
+  }
   res.redirect('/urls');
 });
 
@@ -158,7 +160,7 @@ app.get('/register', (req, res) => {
 
 // handle submission from  the registration form
 app.post('/register', (req, res) => {
-  if (req.body.email === '' ||req.body.password === '') {
+  if (req.body.email === '' || req.body.password === '') {
     res.status(400).send('We\'re gonna need values for email and password.');
   } else {
     for (let user in users) {
@@ -167,15 +169,15 @@ app.post('/register', (req, res) => {
         return;
       }
     }
-    let newUser = generateRandomString();  
+    let newUser = generateRandomString();
     users[newUser] = {
       id: newUser,
       email: req.body.email,
       password: req.body.password
-    }; 
+    };
     res.cookie('user_id', users[newUser].id);
     res.redirect('/urls');
-    }
+  }
 });
 
 // display the login page
