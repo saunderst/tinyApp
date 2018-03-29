@@ -1,23 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <% // include partials/_header %>
-    <style>
-      label {
-        float: left;
-        width: 10em;
-        margin-right: 1em;
-        text-align: right;
-      }
-    </style>
+    <!-- the header relies on this user param, so we force it in this special case -->
+    <% let user=null; %>
+    <% include partials/_header %>
   </head>
   <body>
       <form action="/login" method="POST" style="margin:150px;">
         <h3>Log In:</h3>
-        <label for="email">email:</label>
+        <label class="loginLabel" for="email">email:</label>
         <input type="email" name="email" style="width: 300px">
         <br>
-        <label for="password">password:</label>
+        <label class="loginLabel" for="password">password:</label>
         <input type="password" name="password" style="width: 300px">
         <input type="submit" value="Submit">
     </form>

@@ -1,33 +1,9 @@
 <title>TinyApp</title>
-<style>
-    .longURL {
-        color:blue;
-    }
-    .delButton {
-        -webkit-border-radius: 11;
-        -moz-border-radius: 11;
-        border-radius: 11px;
-        font-family: Arial;
-        color: #000;
-        font-size: 15px;
-        background: #fafafa;
-        padding: 10px;
-        border: solid #dde3e6 1px;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center; 
-        text-align: right; 
-    }
-    body {
-        font-size:20px;
-        /* padding:50px; */
-        margin:150px;
-    }
-</style>
+<link rel="stylesheet" href="/public/globalStyle.css" type="text/css" />
 
 <%if (!user) {%>
     <a href="/register">Register</a>
-    <label> / </label>
+    <br><br>
     <a href="/login">Log in</a>
 <%} else {%>
     <a href="/logout">Log out "<%=user.email%>"</a>

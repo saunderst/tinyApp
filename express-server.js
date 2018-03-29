@@ -55,6 +55,15 @@ function generateRandomString() {
   return rstring;
 }
 
+function requireAuthorization(req, res, next) {
+  if (!req.session.user_id) {
+    // don't show them anything if they're not logged in
+    res.redirect('/login');
+  } else {
+    next();
+  }
+}
+
 app.set('view engine', 'ejs');
 
 // enable us to use local resources for display
@@ -71,18 +80,15 @@ app.use(cookieSession({
   maxAge: 1 * 60 * 60 * 1000 // 1 hour
 }));
 
+app.use('/urls', requireAuthorization);
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
 // home page
 app.get('/', (req, res) => {
-  if (req.session.user_id) {
-    res.redirect('/urls');
-  } else {
-    // don't show them anything if they're not logged in
-    res.redirect('/login');
-  }
+  res.redirect('/urls');
 });
 
 // display list of existing URL mappings
@@ -98,70 +104,54 @@ app.get('/urls', (req, res) => {
 
 // handle request for new URL mapping
 app.post('/urls', (req, res) => {
-  if (req.session.user_id) {   // logged in?
-    let shortURL = generateRandomString();
-    if (req.body.longURL.substring(0, 4) !== 'http') {
-      req.body.longURL = 'http://' + req.body.longURL;
-    }
-    urlDatabase[shortURL] = {
-      userID: req.session.user_id,
-      longURL: req.body.longURL
-    }
-    res.redirect('/urls/' + shortURL);
-  } else {
-    res.redirect('/urls');
+  let shortURL = generateRandomString();
+  if (req.body.longURL.substring(0, 4) !== 'http') {
+    req.body.longURL = 'http://' + req.body.longURL;
   }
+  urlDatabase[shortURL] = {
+    userID: req.session.user_id,
+    longURL: req.body.longURL
+  }
+  res.redirect('/urls/' + shortURL);
 });
 
 // handle request to delete existing URL mapping
 app.post('/urls/:shortURL/delete', (req, res) => {
-  if (req.session.user_id) {   // logged in?
-    // doesn't own this URL?
-    if (urlDatabase[req.params.shortURL].userID != req.session.user_id) {
-      res.status(400).send(req.params.shortURL + ' is owned by another user.');
-    } else {
-      delete urlDatabase[req.params.shortURL];
-    }
+  // doesn't own this URL?
+  if (urlDatabase[req.params.shortURL].userID != req.session.user_id) {
+    res.status(400).send(req.params.shortURL + ' is owned by another user.');
+  } else {
+    delete urlDatabase[req.params.shortURL];
   }
   res.redirect('/urls');
 });
 
 // handle request to alter existing URL mapping
 app.post('/urls/:shortURL/update', (req, res) => {
-  if (req.session.user_id) {   // logged in?
-    // doesn't own this URL?
-    if (urlDatabase[req.params.shortURL].userID != req.session.user_id) {
-      res.status(400).send(req.params.shortURL + ' is owned by another user.');
-    } else {
-      if (req.body.longURL.substring(0, 4) !== 'http') {
-        req.body.longURL = 'http://' + req.body.longURL;
-      }
-      urlDatabase[req.params.shortURL].longURL = req.body.longURL;
+  // doesn't own this URL?
+  if (urlDatabase[req.params.shortURL].userID != req.session.user_id) {
+    res.status(400).send(req.params.shortURL + ' is owned by another user.');
+  } else {
+    if (req.body.longURL.substring(0, 4) !== 'http') {
+      req.body.longURL = 'http://' + req.body.longURL;
     }
-    res.redirect('/urls');
+    urlDatabase[req.params.shortURL].longURL = req.body.longURL;
   }
+  res.redirect('/urls');
 });
 
 // be sure this goes before the generic /urls/:id
 app.get('/urls/new', (req, res) => {
-  if (req.session.user_id) {   // logged in?
-    let templateVars = {
-      user: users[req.session.user_id]
-    };
-    res.render('urls_new', templateVars);
-  } else {
-    // don't let them do it if they're not logged in
-    res.redirect('/login');
-  }
+  let templateVars = {
+    user: users[req.session.user_id]
+  };
+  res.render('urls_new', templateVars);
 });
 
 // show the requested URL mapping
 app.get('/urls/:shortURL', (req, res) => {
   if (!urlDatabase[req.params.shortURL]) {
     res.status(404).send(req.params.shortURL + ' is not a valid URL abbreviation.');
-  }
-  else if (!req.session.user_id) {   // not logged in?
-    res.redirect('/urls');
   }
   else if (urlDatabase[req.params.shortURL].userID != req.session.user_id) {
     res.status(400).send(req.params.shortURL + ' is owned by another user.');
